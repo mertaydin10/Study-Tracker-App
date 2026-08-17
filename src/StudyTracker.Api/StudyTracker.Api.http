@@ -1,0 +1,6 @@
+@StudyTracker.Api_HostAddress = http://localhost:5010
+
+GET {{StudyTracker.Api_HostAddress}}/health
+Accept: application/json
+
+###
