@@ -4,3 +4,33 @@ GET {{StudyTracker.Api_HostAddress}}/health
 Accept: application/json
 
 ###
+
+GET {{StudyTracker.Api_HostAddress}}/api/subjects
+Accept: application/json
+
+###
+
+GET {{StudyTracker.Api_HostAddress}}/api/subjects/1
+Accept: application/json
+
+###
+
+POST {{StudyTracker.Api_HostAddress}}/api/subjects
+Content-Type: application/json
+
+{
+  "name": "ASP.NET"
+}
+
+###
+
+PUT {{StudyTracker.Api_HostAddress}}/api/subjects/1
+Content-Type: application/json
+
+{
+  "name": "C#"
+}
+
+###
+
+DELETE {{StudyTracker.Api_HostAddress}}/api/subjects/1
