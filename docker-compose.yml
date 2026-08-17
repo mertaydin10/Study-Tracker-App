@@ -1,0 +1,27 @@
+# Sadece Postgres. API bu dosyada yok; Week 1 elle SQL için.
+# Şema initdb ile yüklenmez: psql -f sql/001_schema.sql senin işin.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: study_tracker
+    # 5432 makinedeki Postgres'te (rol: mertaydin). Docker'a localhost kaybeder.
+    ports:
+      - "5433:5432"
+    volumes:
+      - study_tracker_pg:/var/lib/postgresql/data
+
+  # Cursor eklentisi explorer göstermeyince tarayıcıdan bakmak için.
+  # Postgres'e Docker ağı üzerinden gider; host 5433'e ihtiyaç duymaz.
+  adminer:
+    image: adminer:4
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  study_tracker_pg:
