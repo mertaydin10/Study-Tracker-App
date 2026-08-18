@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StudyTracker.Api.Auth;
 using StudyTracker.Api.Data;
 using StudyTracker.Api.Dtos.Paging;
 using StudyTracker.Api.Dtos.Sessions;
@@ -9,9 +11,10 @@ namespace StudyTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/sessions")]
+[Authorize]
 public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBase
 {
-    private const long DemoUserId = 1;
+    private long UserId => User.GetRequiredUserId();
 
     [HttpGet]
     public async Task<ActionResult<PagedResponse<SessionResponse>>> List(
@@ -30,7 +33,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
 
         var query = db.StudySessions
             .AsNoTracking()
-            .Where(s => s.UserId == DemoUserId);
+            .Where(s => s.UserId == UserId);
 
         if (from is not null)
             query = query.Where(s => s.StartedAt >= from);
@@ -65,7 +68,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
     public async Task<ActionResult<SessionResponse>> Get(long id, CancellationToken cancellationToken)
     {
         var item = await Project(
-                db.StudySessions.AsNoTracking().Where(s => s.Id == id && s.UserId == DemoUserId))
+                db.StudySessions.AsNoTracking().Where(s => s.Id == id && s.UserId == UserId))
             .FirstOrDefaultAsync(cancellationToken);
 
         if (item is null)
@@ -80,7 +83,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
         CancellationToken cancellationToken)
     {
         var subjectOk = await db.Subjects.AnyAsync(
-            s => s.Id == request.SubjectId && s.UserId == DemoUserId,
+            s => s.Id == request.SubjectId && s.UserId == UserId,
             cancellationToken);
         if (!subjectOk)
             return BadRequest(new { error = "Konu bulunamadı." });
@@ -91,7 +94,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
 
         var session = new StudySession
         {
-            UserId = DemoUserId,
+            UserId = UserId,
             SubjectId = request.SubjectId,
             StartedAt = request.StartedAt,
             DurationMinutes = request.DurationMinutes,
@@ -119,13 +122,13 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
     {
         var session = await db.StudySessions
             .Include(s => s.SessionTags)
-            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == DemoUserId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == UserId, cancellationToken);
 
         if (session is null)
             return NotFound();
 
         var subjectOk = await db.Subjects.AnyAsync(
-            s => s.Id == request.SubjectId && s.UserId == DemoUserId,
+            s => s.Id == request.SubjectId && s.UserId == UserId,
             cancellationToken);
         if (!subjectOk)
             return BadRequest(new { error = "Konu bulunamadı." });
@@ -155,7 +158,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
         var session = await db.StudySessions
-            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == DemoUserId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == UserId, cancellationToken);
 
         if (session is null)
             return NotFound();
@@ -188,7 +191,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
             return [];
 
         var tags = await db.Tags
-            .Where(t => t.UserId == DemoUserId && distinctIds.Contains(t.Id))
+            .Where(t => t.UserId == UserId && distinctIds.Contains(t.Id))
             .ToListAsync(cancellationToken);
 
         return tags.Count == distinctIds.Count ? tags : null;
