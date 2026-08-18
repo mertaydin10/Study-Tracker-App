@@ -21,6 +21,7 @@ public sealed class StudyTrackerDbContext(DbContextOptions<StudyTrackerDbContext
             entity.Property(e => e.Id).HasColumnName("id").UseIdentityAlwaysColumn();
             entity.Property(e => e.Email).HasColumnName("email").IsRequired();
             entity.Property(e => e.DisplayName).HasColumnName("display_name").IsRequired();
+            entity.Property(e => e.PasswordHash).HasColumnName("password_hash").IsRequired();
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at")
                 .HasDefaultValueSql("now()");
