@@ -65,6 +65,11 @@ Accept: application/json
 
 ###
 
+GET {{StudyTracker.Api_HostAddress}}/api/sessions?page=1&pageSize=10
+Accept: application/json
+
+###
+
 POST {{StudyTracker.Api_HostAddress}}/api/sessions
 Content-Type: application/json
 
