@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StudyTracker.Api.Auth;
 using StudyTracker.Api.Data;
 using StudyTracker.Api.Dtos.Stats;
 
@@ -7,9 +9,10 @@ namespace StudyTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/stats")]
+[Authorize]
 public sealed class StatsController(StudyTrackerDbContext db) : ControllerBase
 {
-    private const long DemoUserId = 1;
+    private long UserId => User.GetRequiredUserId();
 
     [HttpGet("summary")]
     public async Task<ActionResult<SummaryResponse>> Summary(
@@ -19,7 +22,7 @@ public sealed class StatsController(StudyTrackerDbContext db) : ControllerBase
     {
         var sessions = db.StudySessions
             .AsNoTracking()
-            .Where(s => s.UserId == DemoUserId);
+            .Where(s => s.UserId == UserId);
 
         if (from is not null)
             sessions = sessions.Where(s => s.StartedAt >= from);
