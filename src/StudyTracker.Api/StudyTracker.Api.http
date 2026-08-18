@@ -79,3 +79,13 @@ Content-Type: application/json
 ###
 
 DELETE {{StudyTracker.Api_HostAddress}}/api/sessions/1
+
+###
+
+GET {{StudyTracker.Api_HostAddress}}/api/stats/summary
+Accept: application/json
+
+###
+
+GET {{StudyTracker.Api_HostAddress}}/api/stats/summary?from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59Z
+Accept: application/json
