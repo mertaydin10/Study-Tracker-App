@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using StudyTracker.Api.Auth;
 using StudyTracker.Api.Data;
 using StudyTracker.Api.Dtos.Subjects;
 using StudyTracker.Api.Entities;
@@ -9,17 +11,17 @@ namespace StudyTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/subjects")]
+[Authorize]
 public sealed class SubjectsController(StudyTrackerDbContext db) : ControllerBase
 {
-    // JWT yok; seed'deki tek kullanıcı.
-    private const long DemoUserId = 1;
+    private long UserId => User.GetRequiredUserId();
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<SubjectResponse>>> List(CancellationToken cancellationToken)
     {
         var items = await db.Subjects
             .AsNoTracking()
-            .Where(s => s.UserId == DemoUserId)
+            .Where(s => s.UserId == UserId)
             .OrderBy(s => s.Name)
             .Select(s => new SubjectResponse
             {
@@ -37,7 +39,7 @@ public sealed class SubjectsController(StudyTrackerDbContext db) : ControllerBas
     {
         var item = await db.Subjects
             .AsNoTracking()
-            .Where(s => s.Id == id && s.UserId == DemoUserId)
+            .Where(s => s.Id == id && s.UserId == UserId)
             .Select(s => new SubjectResponse
             {
                 Id = s.Id,
@@ -59,7 +61,7 @@ public sealed class SubjectsController(StudyTrackerDbContext db) : ControllerBas
     {
         var subject = new Subject
         {
-            UserId = DemoUserId,
+            UserId = UserId,
             Name = request.Name.Trim()
         };
 
@@ -91,7 +93,7 @@ public sealed class SubjectsController(StudyTrackerDbContext db) : ControllerBas
         CancellationToken cancellationToken)
     {
         var subject = await db.Subjects
-            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == DemoUserId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == UserId, cancellationToken);
 
         if (subject is null)
             return NotFound();
@@ -119,7 +121,7 @@ public sealed class SubjectsController(StudyTrackerDbContext db) : ControllerBas
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
         var subject = await db.Subjects
-            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == DemoUserId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == UserId, cancellationToken);
 
         if (subject is null)
             return NotFound();
