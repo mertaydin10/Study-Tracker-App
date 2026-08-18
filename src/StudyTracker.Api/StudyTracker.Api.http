@@ -34,3 +34,48 @@ Content-Type: application/json
 ###
 
 DELETE {{StudyTracker.Api_HostAddress}}/api/subjects/1
+
+###
+
+GET {{StudyTracker.Api_HostAddress}}/api/tags
+Accept: application/json
+
+###
+
+POST {{StudyTracker.Api_HostAddress}}/api/tags
+Content-Type: application/json
+
+{
+  "name": "pomodoro"
+}
+
+###
+
+DELETE {{StudyTracker.Api_HostAddress}}/api/tags/1
+
+###
+
+GET {{StudyTracker.Api_HostAddress}}/api/sessions
+Accept: application/json
+
+###
+
+GET {{StudyTracker.Api_HostAddress}}/api/sessions?subjectId=1
+Accept: application/json
+
+###
+
+POST {{StudyTracker.Api_HostAddress}}/api/sessions
+Content-Type: application/json
+
+{
+  "subjectId": 1,
+  "startedAt": "2026-08-18T12:00:00+03:00",
+  "durationMinutes": 25,
+  "notes": "EF Core",
+  "tagIds": []
+}
+
+###
+
+DELETE {{StudyTracker.Api_HostAddress}}/api/sessions/1
