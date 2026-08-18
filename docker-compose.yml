@@ -1,5 +1,4 @@
-# Sadece Postgres. API bu dosyada yok; Week 1 elle SQL için.
-# Şema initdb ile yüklenmez: psql -f sql/001_schema.sql senin işin.
+# Postgres + Adminer + API. Şema hâlâ elle sql/*.sql (initdb yok).
 
 services:
   postgres:
@@ -8,20 +7,37 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: study_tracker
-    # 5432 makinedeki Postgres'te (rol: mertaydin). Docker'a localhost kaybeder.
+    # 5432: kurs postgresdb / Homebrew. Bu proje host'ta 5433.
     ports:
       - "5433:5432"
     volumes:
       - study_tracker_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d study_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # Cursor eklentisi explorer göstermeyince tarayıcıdan bakmak için.
-  # Postgres'e Docker ağı üzerinden gider; host 5433'e ihtiyaç duymaz.
   adminer:
     image: adminer:4
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5010:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__StudyTracker: Host=postgres;Port=5432;Database=study_tracker;Username=postgres;Password=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   study_tracker_pg:
