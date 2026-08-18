@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudyTracker.Api.Data;
+using StudyTracker.Api.Dtos.Paging;
 using StudyTracker.Api.Dtos.Sessions;
 using StudyTracker.Api.Entities;
 
@@ -13,13 +14,20 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
     private const long DemoUserId = 1;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<SessionResponse>>> List(
+    public async Task<ActionResult<PagedResponse<SessionResponse>>> List(
         [FromQuery] DateTimeOffset? from,
         [FromQuery] DateTimeOffset? to,
         [FromQuery] long? subjectId,
         [FromQuery] long? tagId,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
+        if (page < 1)
+            return BadRequest(new { error = "page 1 veya daha büyük olmalı." });
+
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
         var query = db.StudySessions
             .AsNoTracking()
             .Where(s => s.UserId == DemoUserId);
@@ -36,11 +44,21 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
         if (tagId is not null)
             query = query.Where(s => s.SessionTags.Any(st => st.TagId == tagId));
 
+        var totalCount = await query.CountAsync(cancellationToken);
+
         var items = await Project(query)
             .OrderByDescending(s => s.StartedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return Ok(items);
+        return Ok(new PagedResponse<SessionResponse>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        });
     }
 
     [HttpGet("{id:long}")]
