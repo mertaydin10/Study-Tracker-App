@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using StudyTracker.Api.Auth;
 using StudyTracker.Api.Data;
 using StudyTracker.Api.Dtos.Tags;
 using StudyTracker.Api.Entities;
@@ -9,16 +11,17 @@ namespace StudyTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/tags")]
+[Authorize]
 public sealed class TagsController(StudyTrackerDbContext db) : ControllerBase
 {
-    private const long DemoUserId = 1;
+    private long UserId => User.GetRequiredUserId();
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<TagResponse>>> List(CancellationToken cancellationToken)
     {
         var items = await db.Tags
             .AsNoTracking()
-            .Where(t => t.UserId == DemoUserId)
+            .Where(t => t.UserId == UserId)
             .OrderBy(t => t.Name)
             .Select(t => new TagResponse { Id = t.Id, Name = t.Name })
             .ToListAsync(cancellationToken);
@@ -31,7 +34,7 @@ public sealed class TagsController(StudyTrackerDbContext db) : ControllerBase
     {
         var item = await db.Tags
             .AsNoTracking()
-            .Where(t => t.Id == id && t.UserId == DemoUserId)
+            .Where(t => t.Id == id && t.UserId == UserId)
             .Select(t => new TagResponse { Id = t.Id, Name = t.Name })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -46,7 +49,7 @@ public sealed class TagsController(StudyTrackerDbContext db) : ControllerBase
         CreateTagRequest request,
         CancellationToken cancellationToken)
     {
-        var tag = new Tag { UserId = DemoUserId, Name = request.Name.Trim() };
+        var tag = new Tag { UserId = UserId, Name = request.Name.Trim() };
         db.Tags.Add(tag);
 
         try
@@ -68,7 +71,7 @@ public sealed class TagsController(StudyTrackerDbContext db) : ControllerBase
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
         var tag = await db.Tags
-            .FirstOrDefaultAsync(t => t.Id == id && t.UserId == DemoUserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == id && t.UserId == UserId, cancellationToken);
 
         if (tag is null)
             return NotFound();
