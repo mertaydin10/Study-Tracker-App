@@ -5,8 +5,19 @@ Accept: application/json
 
 ###
 
+POST {{StudyTracker.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@local",
+  "password": "demo"
+}
+
+###
+
 GET {{StudyTracker.Api_HostAddress}}/api/subjects
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ###
 
