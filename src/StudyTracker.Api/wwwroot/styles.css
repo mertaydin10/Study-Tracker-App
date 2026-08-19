@@ -1,0 +1,43 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #f4f4f1;
+}
+
+body {
+  max-width: 42rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h1 { font-size: 1.4rem; }
+
+section {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+label, input, button, select {
+  display: block;
+  margin: 0.35rem 0;
+}
+
+input, select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem;
+}
+
+button {
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+}
+
+#error { color: #a40000; min-height: 1.2rem; }
+
+ul { padding-left: 1.2rem; }
+
+.hidden { display: none; }
