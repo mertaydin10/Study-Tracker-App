@@ -38,12 +38,22 @@
     </section>
 
     <section>
+      <h2>Etiketler</h2>
+      <ul id="tags"></ul>
+      <form id="tagForm">
+        <label>Yeni etiket <input id="tagName" required /></label>
+        <button type="submit">Ekle</button>
+      </form>
+    </section>
+
+    <section>
       <h2>Oturumlar</h2>
       <ul id="sessions"></ul>
       <form id="sessionForm">
         <label>Konu <select id="subjectId"></select></label>
         <label>Dakika <input id="duration" type="number" min="1" value="25" required /></label>
         <label>Not <input id="notes" /></label>
+        <div class="tag-options" id="tagOptions"></div>
         <button type="submit">Oturum ekle</button>
       </form>
     </section>
