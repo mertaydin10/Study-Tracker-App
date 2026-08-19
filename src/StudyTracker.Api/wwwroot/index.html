@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Study Tracker</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <h1>Study Tracker</h1>
+  <p id="error"></p>
+
+  <section id="login">
+    <h2>Giriş</h2>
+    <form id="loginForm">
+      <label>E-posta <input id="email" type="email" value="demo@local" required /></label>
+      <label>Şifre <input id="password" type="password" value="demo" required /></label>
+      <button type="submit">Giriş</button>
+    </form>
+  </section>
+
+  <div id="app" class="hidden">
+    <p><button type="button" id="logout">Çıkış</button>
+      <a href="/swagger">Swagger</a></p>
+
+    <section>
+      <h2>Özet</h2>
+      <p id="stats">—</p>
+    </section>
+
+    <section>
+      <h2>Konular</h2>
+      <ul id="subjects"></ul>
+      <form id="subjectForm">
+        <label>Yeni konu <input id="subjectName" required /></label>
+        <button type="submit">Ekle</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Oturumlar</h2>
+      <ul id="sessions"></ul>
+      <form id="sessionForm">
+        <label>Konu <select id="subjectId"></select></label>
+        <label>Dakika <input id="duration" type="number" min="1" value="25" required /></label>
+        <label>Not <input id="notes" /></label>
+        <button type="submit">Oturum ekle</button>
+      </form>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
