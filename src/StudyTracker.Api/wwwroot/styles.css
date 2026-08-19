@@ -36,6 +36,23 @@ button {
   cursor: pointer;
 }
 
+button.small {
+  display: inline-block;
+  font-size: 0.85rem;
+  margin-left: 0.4rem;
+}
+
+.tag-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-right: 0.8rem;
+}
+
+.tag-options input {
+  width: auto;
+}
+
 #error { color: #a40000; min-height: 1.2rem; }
 
 ul { padding-left: 1.2rem; }
