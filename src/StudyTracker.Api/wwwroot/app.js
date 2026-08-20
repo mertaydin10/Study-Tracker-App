@@ -54,7 +54,17 @@ function logout() {
   showApp(false);
 }
 
-function escapeHtml(value) {
+function formatWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -69,7 +79,9 @@ async function refresh() {
     $("subjects").innerHTML = subjects
       .map(
         (s, i) =>
-          `<li>${i + 1}. ${escapeHtml(s.name)} <button type="button" class="small" data-delete-subject="${s.id}">Sil</button></li>`
+          `<li>${i + 1}. ${escapeHtml(s.name)}
+          <button type="button" class="small" data-rename-subject="${s.id}" data-name="${escapeHtml(s.name)}">Adı değiştir</button>
+          <button type="button" class="small" data-delete-subject="${s.id}">Sil</button></li>`
       )
       .join("");
     $("subjectId").innerHTML = subjects
@@ -78,11 +90,12 @@ async function refresh() {
 
     const sessions = await api("/api/sessions?page=1&pageSize=20");
     $("sessions").innerHTML = (sessions.items || [])
-      .map(
-        (s) =>
-          `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk
-          <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`
-      )
+      .map((s) => {
+        const note = s.notes ? ` — ${escapeHtml(s.notes)}` : "";
+        return `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk
+          <span class="when">${escapeHtml(formatWhen(s.startedAt))}</span>${note}
+          <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`;
+      })
       .join("");
 
     const stats = await api("/api/stats/summary");
@@ -139,7 +152,16 @@ $("app").addEventListener("click", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
   try {
-    if (target.dataset.deleteSubject) {
+    if (target.dataset.renameSubject) {
+      const current = target.dataset.name ?? "";
+      const name = window.prompt("Yeni konu adı", current);
+      if (!name || !name.trim()) return;
+      await api(`/api/subjects/${target.dataset.renameSubject}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: name.trim() })
+      });
+      await refresh();
+    } else if (target.dataset.deleteSubject) {
       await api(`/api/subjects/${target.dataset.deleteSubject}`, { method: "DELETE" });
       await refresh();
     } else if (target.dataset.deleteSession) {
