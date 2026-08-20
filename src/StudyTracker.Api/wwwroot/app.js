@@ -68,36 +68,21 @@ async function refresh() {
     const subjects = await api("/api/subjects");
     $("subjects").innerHTML = subjects
       .map(
-        (s) =>
-          `<li>${escapeHtml(s.name)} (#${s.id}) <button type="button" class="small" data-delete-subject="${s.id}">Sil</button></li>`
+        (s, i) =>
+          `<li>${i + 1}. ${escapeHtml(s.name)} <button type="button" class="small" data-delete-subject="${s.id}">Sil</button></li>`
       )
       .join("");
     $("subjectId").innerHTML = subjects
       .map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
       .join("");
 
-    const tags = await api("/api/tags");
-    $("tags").innerHTML = tags
-      .map(
-        (t) =>
-          `<li>${escapeHtml(t.name)} <button type="button" class="small" data-delete-tag="${t.id}">Sil</button></li>`
-      )
-      .join("");
-    $("tagOptions").innerHTML = tags
-      .map(
-        (t) =>
-          `<label><input type="checkbox" name="tag" value="${t.id}" /> ${escapeHtml(t.name)}</label>`
-      )
-      .join("");
-
     const sessions = await api("/api/sessions?page=1&pageSize=20");
     $("sessions").innerHTML = (sessions.items || [])
-      .map((s) => {
-        const tagText = (s.tags || []).map((t) => t.name).join(", ");
-        const extra = tagText ? ` [${escapeHtml(tagText)}]` : "";
-        return `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk${extra}
-          <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`;
-      })
+      .map(
+        (s) =>
+          `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk
+          <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`
+      )
       .join("");
 
     const stats = await api("/api/stats/summary");
@@ -125,20 +110,6 @@ async function addSubject(event) {
   }
 }
 
-async function addTag(event) {
-  event.preventDefault();
-  try {
-    await api("/api/tags", {
-      method: "POST",
-      body: JSON.stringify({ name: $("tagName").value })
-    });
-    $("tagName").value = "";
-    await refresh();
-  } catch (e) {
-    $("error").textContent = e.message;
-  }
-}
-
 async function addSession(event) {
   event.preventDefault();
   try {
@@ -149,9 +120,7 @@ async function addSession(event) {
         startedAt: new Date().toISOString(),
         durationMinutes: Number($("duration").value),
         notes: $("notes").value || null,
-        tagIds: [...document.querySelectorAll("#tagOptions input:checked")].map(
-          (el) => Number(el.value)
-        )
+        tagIds: []
       })
     });
     $("notes").value = "";
@@ -164,7 +133,6 @@ async function addSession(event) {
 $("loginForm").addEventListener("submit", login);
 $("logout").addEventListener("click", logout);
 $("subjectForm").addEventListener("submit", addSubject);
-$("tagForm").addEventListener("submit", addTag);
 $("sessionForm").addEventListener("submit", addSession);
 
 $("app").addEventListener("click", async (event) => {
@@ -173,9 +141,6 @@ $("app").addEventListener("click", async (event) => {
   try {
     if (target.dataset.deleteSubject) {
       await api(`/api/subjects/${target.dataset.deleteSubject}`, { method: "DELETE" });
-      await refresh();
-    } else if (target.dataset.deleteTag) {
-      await api(`/api/tags/${target.dataset.deleteTag}`, { method: "DELETE" });
       await refresh();
     } else if (target.dataset.deleteSession) {
       await api(`/api/sessions/${target.dataset.deleteSession}`, { method: "DELETE" });
