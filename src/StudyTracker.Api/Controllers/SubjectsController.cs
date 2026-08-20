@@ -22,7 +22,8 @@ public sealed class SubjectsController(StudyTrackerDbContext db) : ControllerBas
         var items = await db.Subjects
             .AsNoTracking()
             .Where(s => s.UserId == UserId)
-            .OrderBy(s => s.Id)
+            .OrderBy(s => s.CreatedAt)
+            .ThenBy(s => s.Id)
             .Select(s => new SubjectResponse
             {
                 Id = s.Id,
