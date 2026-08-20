@@ -15,7 +15,10 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.AddControllers();
-        services.AddOpenApi();
+        services.AddOpenApi(options =>
+        {
+            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+        });
         services.AddSingleton<PasswordHasher<User>>();
 
         var connectionString = configuration.GetConnectionString("StudyTracker")
