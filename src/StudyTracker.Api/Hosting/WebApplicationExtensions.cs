@@ -10,6 +10,7 @@ public static class WebApplicationExtensions
             app.UseSwaggerUI(options =>
             {
                 options.SwaggerEndpoint("/openapi/v1.json", "Study Tracker");
+                options.EnablePersistAuthorization();
             });
         }
 
