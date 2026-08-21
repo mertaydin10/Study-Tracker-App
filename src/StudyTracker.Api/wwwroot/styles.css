@@ -47,6 +47,11 @@ button.small {
   font-size: 0.9rem;
 }
 
+.empty {
+  list-style: none;
+  color: #666;
+}
+
 ul { padding-left: 1.2rem; }
 
 .hidden { display: none; }
