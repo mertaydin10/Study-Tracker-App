@@ -65,6 +65,8 @@ function formatWhen(iso) {
     minute: "2-digit"
   });
 }
+
+function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -76,27 +78,50 @@ async function refresh() {
   $("error").textContent = "";
   try {
     const subjects = await api("/api/subjects");
-    $("subjects").innerHTML = subjects
-      .map(
-        (s, i) =>
-          `<li>${i + 1}. ${escapeHtml(s.name)}
-          <button type="button" class="small" data-rename-subject="${s.id}" data-name="${escapeHtml(s.name)}">Adı değiştir</button>
-          <button type="button" class="small" data-delete-subject="${s.id}">Sil</button></li>`
-      )
-      .join("");
+    $("subjects").innerHTML = subjects.length
+      ? subjects
+          .map(
+            (s, i) =>
+              `<li>${i + 1}. ${escapeHtml(s.name)}
+              <button type="button" class="small" data-rename-subject="${s.id}" data-name="${escapeHtml(s.name)}">Adı değiştir</button>
+              <button type="button" class="small" data-delete-subject="${s.id}">Sil</button></li>`
+          )
+          .join("")
+      : `<li class="empty">Henüz konu yok.</li>`;
+
+    const selectedAdd = $("subjectId").value;
+    const selectedFilter = $("sessionFilter").value;
     $("subjectId").innerHTML = subjects
       .map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
       .join("");
+    if (selectedAdd) $("subjectId").value = selectedAdd;
 
-    const sessions = await api("/api/sessions?page=1&pageSize=20");
-    $("sessions").innerHTML = (sessions.items || [])
-      .map((s) => {
-        const note = s.notes ? ` — ${escapeHtml(s.notes)}` : "";
-        return `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk
-          <span class="when">${escapeHtml(formatWhen(s.startedAt))}</span>${note}
-          <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`;
-      })
-      .join("");
+    $("sessionFilter").innerHTML =
+      `<option value="">Tümü</option>` +
+      subjects
+        .map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
+        .join("");
+    if (selectedFilter) $("sessionFilter").value = selectedFilter;
+
+    const filter = $("sessionFilter").value;
+    const qs = filter
+      ? `/api/sessions?page=1&pageSize=20&subjectId=${encodeURIComponent(filter)}`
+      : "/api/sessions?page=1&pageSize=20";
+    const sessions = await api(qs);
+    const items = sessions.items || [];
+    $("sessions").innerHTML = items.length
+      ? items
+          .map((s) => {
+            const note = s.notes ? ` — ${escapeHtml(s.notes)}` : "";
+            return `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk
+              <span class="when">${escapeHtml(formatWhen(s.startedAt))}</span>${note}
+              <button type="button" class="small" data-edit-session="${s.id}"
+                data-subject-id="${s.subjectId}" data-started="${escapeHtml(s.startedAt)}"
+                data-duration="${s.durationMinutes}" data-notes="${escapeHtml(s.notes ?? "")}">Düzenle</button>
+              <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`;
+          })
+          .join("")
+      : `<li class="empty">Bu filtrede oturum yok.</li>`;
 
     const stats = await api("/api/stats/summary");
     $("stats").textContent =
@@ -147,6 +172,7 @@ $("loginForm").addEventListener("submit", login);
 $("logout").addEventListener("click", logout);
 $("subjectForm").addEventListener("submit", addSubject);
 $("sessionForm").addEventListener("submit", addSession);
+$("sessionFilter").addEventListener("change", () => refresh());
 
 $("app").addEventListener("click", async (event) => {
   const target = event.target;
@@ -161,10 +187,33 @@ $("app").addEventListener("click", async (event) => {
         body: JSON.stringify({ name: name.trim() })
       });
       await refresh();
+    } else if (target.dataset.editSession) {
+      const minutes = window.prompt("Dakika", target.dataset.duration ?? "25");
+      if (minutes === null) return;
+      const durationMinutes = Number(minutes);
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
+        $("error").textContent = "Dakika 1 veya daha büyük olmalı.";
+        return;
+      }
+      const notes = window.prompt("Not", target.dataset.notes ?? "");
+      if (notes === null) return;
+      await api(`/api/sessions/${target.dataset.editSession}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          subjectId: Number(target.dataset.subjectId),
+          startedAt: target.dataset.started,
+          durationMinutes,
+          notes: notes.trim() || null,
+          tagIds: []
+        })
+      });
+      await refresh();
     } else if (target.dataset.deleteSubject) {
+      if (!window.confirm("Bu konuyu silmek istiyor musun?")) return;
       await api(`/api/subjects/${target.dataset.deleteSubject}`, { method: "DELETE" });
       await refresh();
     } else if (target.dataset.deleteSession) {
+      if (!window.confirm("Bu oturumu silmek istiyor musun?")) return;
       await api(`/api/sessions/${target.dataset.deleteSession}`, { method: "DELETE" });
       await refresh();
     }
