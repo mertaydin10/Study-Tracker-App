@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Study Tracker</title>
-  <link rel="stylesheet" href="/styles.css?v=4" />
+  <link rel="stylesheet" href="/styles.css?v=5" />
 </head>
 <body>
   <h1>Study Tracker</h1>
@@ -39,6 +39,11 @@
 
     <section>
       <h2>Oturumlar</h2>
+      <label>Konuya göre
+        <select id="sessionFilter">
+          <option value="">Tümü</option>
+        </select>
+      </label>
       <ul id="sessions"></ul>
       <form id="sessionForm">
         <label>Konu <select id="subjectId"></select></label>
@@ -49,6 +54,6 @@
     </section>
   </div>
 
-  <script src="/app.js?v=4"></script>
+  <script src="/app.js?v=5"></script>
 </body>
 </html>
