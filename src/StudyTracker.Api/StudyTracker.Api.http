@@ -15,6 +15,17 @@ Content-Type: application/json
 
 ###
 
+POST {{StudyTracker.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "yeni@local",
+  "password": "demo",
+  "displayName": "Yeni"
+}
+
+###
+
 GET {{StudyTracker.Api_HostAddress}}/api/subjects
 Accept: application/json
 Authorization: Bearer {{token}}
