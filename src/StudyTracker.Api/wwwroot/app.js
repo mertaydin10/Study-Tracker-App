@@ -1,4 +1,10 @@
-const tokenKey = "studyTrackerToken";
+let sessionPage = 1;
+const sessionPageSize = 10;
+
+function toLocalInputValue(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -104,11 +110,23 @@ async function refresh() {
     if (selectedFilter) $("sessionFilter").value = selectedFilter;
 
     const filter = $("sessionFilter").value;
-    const qs = filter
-      ? `/api/sessions?page=1&pageSize=20&subjectId=${encodeURIComponent(filter)}`
-      : "/api/sessions?page=1&pageSize=20";
-    const sessions = await api(qs);
+    const qs = new URLSearchParams({
+      page: String(sessionPage),
+      pageSize: String(sessionPageSize)
+    });
+    if (filter) qs.set("subjectId", filter);
+    const sessions = await api(`/api/sessions?${qs}`);
     const items = sessions.items || [];
+    const total = sessions.totalCount ?? 0;
+    const lastPage = Math.max(1, Math.ceil(total / sessionPageSize));
+    if (sessionPage > lastPage) {
+      sessionPage = lastPage;
+      await refresh();
+      return;
+    }
+    $("pageLabel").textContent = `${sessionPage} / ${lastPage} (${total})`;
+    $("prevPage").disabled = sessionPage <= 1;
+    $("nextPage").disabled = sessionPage >= lastPage;
     $("sessions").innerHTML = items.length
       ? items
           .map((s) => {
@@ -123,9 +141,13 @@ async function refresh() {
           .join("")
       : `<li class="empty">Bu filtrede oturum yok.</li>`;
 
-    const stats = await api("/api/stats/summary");
+    const statsQs = filter ? `/api/stats/summary?subjectId=${encodeURIComponent(filter)}` : "/api/stats/summary";
+    const stats = await api(statsQs);
     $("stats").textContent =
       `${stats.sessionCount} oturum, ${stats.totalMinutes} dakika`;
+    $("statsBySubject").innerHTML = (stats.bySubject || [])
+      .map((row) => `<li>${escapeHtml(row.subjectName)}: ${row.sessionCount} oturum, ${row.totalMinutes} dk</li>`)
+      .join("");
   } catch (e) {
     $("error").textContent = e.message;
     if (String(e.message).includes("Unauthorized") || e.message === "Unauthorized") {
@@ -155,13 +177,14 @@ async function addSession(event) {
       method: "POST",
       body: JSON.stringify({
         subjectId: Number($("subjectId").value),
-        startedAt: new Date().toISOString(),
+        startedAt: new Date($("startedAt").value).toISOString(),
         durationMinutes: Number($("duration").value),
         notes: $("notes").value || null,
         tagIds: []
       })
     });
     $("notes").value = "";
+    $("startedAt").value = toLocalInputValue();
     await refresh();
   } catch (e) {
     $("error").textContent = e.message;
@@ -172,7 +195,20 @@ $("loginForm").addEventListener("submit", login);
 $("logout").addEventListener("click", logout);
 $("subjectForm").addEventListener("submit", addSubject);
 $("sessionForm").addEventListener("submit", addSession);
-$("sessionFilter").addEventListener("change", () => refresh());
+$("sessionFilter").addEventListener("change", () => {
+  sessionPage = 1;
+  refresh();
+});
+$("prevPage").addEventListener("click", () => {
+  if (sessionPage > 1) {
+    sessionPage -= 1;
+    refresh();
+  }
+});
+$("nextPage").addEventListener("click", () => {
+  sessionPage += 1;
+  refresh();
+});
 
 $("app").addEventListener("click", async (event) => {
   const target = event.target;
@@ -224,7 +260,9 @@ $("app").addEventListener("click", async (event) => {
 
 if (token()) {
   showApp(true);
+  $("startedAt").value = toLocalInputValue();
   refresh();
 } else {
   showApp(false);
+  $("startedAt").value = toLocalInputValue();
 }
