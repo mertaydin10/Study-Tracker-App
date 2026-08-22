@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using StudyTracker.Api.Auth;
 using StudyTracker.Api.Data;
 using StudyTracker.Api.Dtos.Auth;
 using StudyTracker.Api.Entities;
@@ -70,6 +71,25 @@ public sealed class AuthController(
         }
 
         return Created("/api/auth/login", IssueToken(user));
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<UserResponse>> Me(CancellationToken cancellationToken)
+    {
+        var id = User.GetRequiredUserId();
+        var user = await db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        if (user is null)
+            return Unauthorized();
+
+        return Ok(new UserResponse
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName
+        });
     }
 
     private LoginResponse IssueToken(User user)
