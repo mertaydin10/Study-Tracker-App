@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Study Tracker</title>
-  <link rel="stylesheet" href="/styles.css?v=5" />
+  <link rel="stylesheet" href="/styles.css?v=6" />
 </head>
 <body>
   <h1>Study Tracker</h1>
@@ -26,6 +26,7 @@
     <section>
       <h2>Özet</h2>
       <p id="stats">—</p>
+      <ul id="statsBySubject"></ul>
     </section>
 
     <section>
@@ -45,8 +46,14 @@
         </select>
       </label>
       <ul id="sessions"></ul>
+      <p id="pager">
+        <button type="button" class="small" id="prevPage">Önceki</button>
+        <span id="pageLabel">1</span>
+        <button type="button" class="small" id="nextPage">Sonraki</button>
+      </p>
       <form id="sessionForm">
         <label>Konu <select id="subjectId"></select></label>
+        <label>Başlangıç <input id="startedAt" type="datetime-local" required /></label>
         <label>Dakika <input id="duration" type="number" min="1" value="25" required /></label>
         <label>Not <input id="notes" /></label>
         <button type="submit">Oturum ekle</button>
@@ -54,6 +61,6 @@
     </section>
   </div>
 
-  <script src="/app.js?v=5"></script>
+  <script src="/app.js?v=6"></script>
 </body>
 </html>
