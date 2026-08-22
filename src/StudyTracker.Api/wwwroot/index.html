@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Study Tracker</title>
-  <link rel="stylesheet" href="/styles.css?v=6" />
+  <link rel="stylesheet" href="/styles.css?v=7" />
 </head>
 <body>
   <h1>Study Tracker</h1>
@@ -16,6 +16,13 @@
       <label>E-posta <input id="email" type="email" value="demo@local" required /></label>
       <label>Şifre <input id="password" type="password" value="demo" required /></label>
       <button type="submit">Giriş</button>
+    </form>
+    <h2>Kayıt</h2>
+    <form id="registerForm">
+      <label>E-posta <input id="regEmail" type="email" required /></label>
+      <label>Şifre <input id="regPassword" type="password" minlength="4" required /></label>
+      <label>Ad <input id="regName" maxlength="200" /></label>
+      <button type="submit">Kayıt ol</button>
     </form>
   </section>
 
@@ -56,11 +63,12 @@
         <label>Başlangıç <input id="startedAt" type="datetime-local" required /></label>
         <label>Dakika <input id="duration" type="number" min="1" value="25" required /></label>
         <label>Not <input id="notes" /></label>
+        <p id="sessionHint" class="empty hidden">Önce bir konu ekle.</p>
         <button type="submit">Oturum ekle</button>
       </form>
     </section>
   </div>
 
-  <script src="/app.js?v=6"></script>
+  <script src="/app.js?v=7"></script>
 </body>
 </html>
