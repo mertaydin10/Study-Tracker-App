@@ -1,5 +1,6 @@
 let sessionPage = 1;
 const sessionPageSize = 10;
+const tokenKey = "studyTrackerToken";
 
 function toLocalInputValue(date = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -55,6 +56,26 @@ async function login(event) {
   }
 }
 
+async function register(event) {
+  event.preventDefault();
+  $("error").textContent = "";
+  try {
+    const data = await api("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        email: $("regEmail").value,
+        password: $("regPassword").value,
+        displayName: $("regName").value || null
+      })
+    });
+    localStorage.setItem(tokenKey, data.token);
+    showApp(true);
+    await refresh();
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
+}
+
 function logout() {
   localStorage.removeItem(tokenKey);
   showApp(false);
@@ -95,6 +116,10 @@ async function refresh() {
           .join("")
       : `<li class="empty">Henüz konu yok.</li>`;
 
+    $("sessionHint").classList.toggle("hidden", subjects.length > 0);
+    for (const el of $("sessionForm").querySelectorAll("input, select, button")) {
+      el.disabled = subjects.length === 0;
+    }
     const selectedAdd = $("subjectId").value;
     const selectedFilter = $("sessionFilter").value;
     $("subjectId").innerHTML = subjects
@@ -192,6 +217,7 @@ async function addSession(event) {
 }
 
 $("loginForm").addEventListener("submit", login);
+$("registerForm").addEventListener("submit", register);
 $("logout").addEventListener("click", logout);
 $("subjectForm").addEventListener("submit", addSubject);
 $("sessionForm").addEventListener("submit", addSession);
