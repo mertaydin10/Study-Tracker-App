@@ -31,21 +31,7 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
 
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        var query = db.StudySessions
-            .AsNoTracking()
-            .Where(s => s.UserId == UserId);
-
-        if (from is not null)
-            query = query.Where(s => s.StartedAt >= from);
-
-        if (to is not null)
-            query = query.Where(s => s.StartedAt <= to);
-
-        if (subjectId is not null)
-            query = query.Where(s => s.SubjectId == subjectId);
-
-        if (tagId is not null)
-            query = query.Where(s => s.SessionTags.Any(st => st.TagId == tagId));
+        var query = FilterSessions(from, to, subjectId, tagId);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -62,6 +48,33 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
             PageSize = pageSize,
             TotalCount = totalCount
         });
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> Export(
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] long? subjectId,
+        [FromQuery] long? tagId,
+        CancellationToken cancellationToken)
+    {
+        var query = FilterSessions(from, to, subjectId, tagId);
+        var items = await Project(query)
+            .OrderByDescending(s => s.StartedAt)
+            .Take(5000)
+            .ToListAsync(cancellationToken);
+
+        var csv = new System.Text.StringBuilder();
+        csv.Append('\uFEFF');
+        csv.AppendLine("subject,started_at,duration_minutes,notes");
+        foreach (var row in items)
+            csv.AppendLine(string.Join(',',
+                Csv(row.SubjectName),
+                Csv(row.StartedAt.ToString("o")),
+                row.DurationMinutes.ToString(),
+                Csv(row.Notes)));
+
+        return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "sessions.csv");
     }
 
     [HttpGet("{id:long}")]
@@ -195,5 +208,38 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
             .ToListAsync(cancellationToken);
 
         return tags.Count == distinctIds.Count ? tags : null;
+    }
+
+    private IQueryable<StudySession> FilterSessions(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        long? subjectId,
+        long? tagId)
+    {
+        var query = db.StudySessions
+            .AsNoTracking()
+            .Where(s => s.UserId == UserId);
+
+        if (from is not null)
+            query = query.Where(s => s.StartedAt >= from);
+
+        if (to is not null)
+            query = query.Where(s => s.StartedAt <= to);
+
+        if (subjectId is not null)
+            query = query.Where(s => s.SubjectId == subjectId);
+
+        if (tagId is not null)
+            query = query.Where(s => s.SessionTags.Any(st => st.TagId == tagId));
+
+        return query;
+    }
+
+    private static string Csv(string? value)
+    {
+        var text = value ?? "";
+        if (text.Contains('"') || text.Contains(',') || text.Contains('\n'))
+            return $"\"{text.Replace("\"", "\"\"")}\"";
+        return text;
     }
 }
