@@ -18,6 +18,7 @@ public sealed class StatsController(StudyTrackerDbContext db) : ControllerBase
     public async Task<ActionResult<SummaryResponse>> Summary(
         [FromQuery] DateTimeOffset? from,
         [FromQuery] DateTimeOffset? to,
+        [FromQuery] long? subjectId,
         CancellationToken cancellationToken)
     {
         var sessions = db.StudySessions
@@ -29,6 +30,9 @@ public sealed class StatsController(StudyTrackerDbContext db) : ControllerBase
 
         if (to is not null)
             sessions = sessions.Where(s => s.StartedAt <= to);
+
+        if (subjectId is not null)
+            sessions = sessions.Where(s => s.SubjectId == subjectId);
 
         // GROUP BY SQL'de; konu başına ayrı Count/Sum (N+1) yok.
         var bySubject = await sessions
