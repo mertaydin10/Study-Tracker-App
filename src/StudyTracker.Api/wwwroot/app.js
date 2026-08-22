@@ -104,6 +104,8 @@ function escapeHtml(value) {
 async function refresh() {
   $("error").textContent = "";
   try {
+    const me = await api("/api/auth/me");
+    $("who").textContent = me.displayName || me.email;
     const subjects = await api("/api/subjects");
     $("subjects").innerHTML = subjects.length
       ? subjects
@@ -234,6 +236,28 @@ $("prevPage").addEventListener("click", () => {
 $("nextPage").addEventListener("click", () => {
   sessionPage += 1;
   refresh();
+});
+$("exportCsv").addEventListener("click", async () => {
+  $("error").textContent = "";
+  try {
+    const qs = new URLSearchParams();
+    const filter = $("sessionFilter").value;
+    if (filter) qs.set("subjectId", filter);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    const res = await fetch(`/api/sessions/export${suffix}`, {
+      headers: { Authorization: `Bearer ${token()}` }
+    });
+    if (!res.ok) throw new Error("CSV indirilemedi.");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sessions.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
 });
 
 $("app").addEventListener("click", async (event) => {
