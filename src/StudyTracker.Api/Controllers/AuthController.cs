@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using StudyTracker.Api.Data;
 using StudyTracker.Api.Dtos.Auth;
 using StudyTracker.Api.Entities;
@@ -35,6 +36,44 @@ public sealed class AuthController(
         if (result == PasswordVerificationResult.Failed)
             return Unauthorized(new { error = "E-posta veya şifre yanlış." });
 
+        return Ok(IssueToken(user));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("register")]
+    public async Task<ActionResult<LoginResponse>> Register(
+        RegisterRequest request,
+        CancellationToken cancellationToken)
+    {
+        var email = request.Email.Trim();
+        var displayName = string.IsNullOrWhiteSpace(request.DisplayName)
+            ? email
+            : request.DisplayName.Trim();
+
+        var user = new User
+        {
+            Email = email,
+            DisplayName = displayName
+        };
+        user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
+
+        db.Users.Add(user);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg
+                                           && pg.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            return Conflict(new { error = "Bu e-posta zaten kayıtlı." });
+        }
+
+        return Created("/api/auth/login", IssueToken(user));
+    }
+
+    private LoginResponse IssueToken(User user)
+    {
         var key = configuration["Jwt:Key"]
             ?? throw new InvalidOperationException("Jwt:Key eksik.");
         var issuer = configuration["Jwt:Issuer"] ?? "StudyTracker";
@@ -56,10 +95,10 @@ public sealed class AuthController(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
                 SecurityAlgorithms.HmacSha256));
 
-        return Ok(new LoginResponse
+        return new LoginResponse
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             ExpiresAt = expires
-        });
+        };
     }
 }
