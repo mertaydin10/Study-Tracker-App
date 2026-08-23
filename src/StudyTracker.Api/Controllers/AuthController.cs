@@ -92,6 +92,33 @@ public sealed class AuthController(
         });
     }
 
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<ActionResult<UserResponse>> UpdateMe(
+        UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var id = User.GetRequiredUserId();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        if (user is null)
+            return Unauthorized();
+
+        var name = request.DisplayName.Trim();
+        if (name.Length == 0)
+            return BadRequest(new { error = "Ad boş olamaz." });
+
+        user.DisplayName = name;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new UserResponse
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName
+        });
+    }
+
     private LoginResponse IssueToken(User user)
     {
         var key = configuration["Jwt:Key"]
