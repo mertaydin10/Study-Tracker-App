@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Study Tracker</title>
-  <link rel="stylesheet" href="/styles.css?v=8" />
+  <link rel="stylesheet" href="/styles.css?v=9" />
 </head>
 <body>
   <h1>Study Tracker</h1>
@@ -28,6 +28,7 @@
 
   <div id="app" class="hidden">
     <p><span id="who"></span>
+      <button type="button" class="small" id="renameMe">Adı değiştir</button>
       <button type="button" id="logout">Çıkış</button>
       <a href="/swagger">Swagger</a>
       <button type="button" class="small" id="exportCsv">CSV indir</button></p>
@@ -54,6 +55,11 @@
           <option value="">Tümü</option>
         </select>
       </label>
+      <div class="filters">
+        <label>Başlangıç <input id="fromDate" type="date" /></label>
+        <label>Bitiş <input id="toDate" type="date" /></label>
+        <button type="button" class="small" id="clearDates">Tarihleri temizle</button>
+      </div>
       <ul id="sessions"></ul>
       <p id="pager">
         <button type="button" class="small" id="prevPage">Önceki</button>
@@ -71,6 +77,6 @@
     </section>
   </div>
 
-  <script src="/app.js?v=8"></script>
+  <script src="/app.js?v=9"></script>
 </body>
 </html>
