@@ -21,6 +21,9 @@ public sealed class StatsController(StudyTrackerDbContext db) : ControllerBase
         [FromQuery] long? subjectId,
         CancellationToken cancellationToken)
     {
+        if (from is not null && to is not null && from > to)
+            return BadRequest(new { error = "Başlangıç bitişten sonra olamaz." });
+
         var sessions = db.StudySessions
             .AsNoTracking()
             .Where(s => s.UserId == UserId);
