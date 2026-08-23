@@ -119,6 +119,27 @@ public sealed class AuthController(
         });
     }
 
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(
+        ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var id = User.GetRequiredUserId();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+        if (user is null || string.IsNullOrEmpty(user.PasswordHash))
+            return Unauthorized();
+
+        var check = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
+        if (check == PasswordVerificationResult.Failed)
+            return Unauthorized(new { error = "Mevcut şifre yanlış." });
+
+        user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     private LoginResponse IssueToken(User user)
     {
         var key = configuration["Jwt:Key"]
