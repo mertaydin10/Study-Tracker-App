@@ -24,7 +24,14 @@ async function api(path, options = {}) {
   const res = await fetch(path, { ...options, headers });
   if (res.status === 204) return null;
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(res.statusText || "İstek başarısız.");
+    }
+  }
   if (!res.ok) {
     const msg = data?.error || data?.title || res.statusText;
     throw new Error(msg);
@@ -78,6 +85,8 @@ async function register(event) {
 
 function logout() {
   localStorage.removeItem(tokenKey);
+  $("notice").textContent = "";
+  $("error").textContent = "";
   showApp(false);
 }
 
@@ -118,8 +127,10 @@ function applyFilters(qs) {
   if (filter) qs.set("subjectId", filter);
   const from = $("fromDate").value;
   const to = $("toDate").value;
+  if (from && to && from > to) return false;
   if (from) qs.set("from", new Date(`${from}T00:00:00`).toISOString());
   if (to) qs.set("to", new Date(`${to}T23:59:59`).toISOString());
+  return true;
 }
 
 async function refresh() {
@@ -161,7 +172,10 @@ async function refresh() {
       page: String(sessionPage),
       pageSize: String(sessionPageSize)
     });
-    applyFilters(qs);
+    if (!applyFilters(qs)) {
+      $("error").textContent = "Başlangıç bitişten sonra olamaz.";
+      return;
+    }
     const sessions = await api(`/api/sessions?${qs}`);
     const items = sessions.items || [];
     const total = sessions.totalCount ?? 0;
@@ -196,9 +210,11 @@ async function refresh() {
     const stats = await api(statsPath);
     $("stats").textContent =
       `${stats.sessionCount} oturum, ${stats.totalMinutes} dakika`;
-    $("statsBySubject").innerHTML = (stats.bySubject || [])
-      .map((row) => `<li>${escapeHtml(row.subjectName)}: ${row.sessionCount} oturum, ${row.totalMinutes} dk</li>`)
-      .join("");
+    $("statsBySubject").innerHTML = (stats.bySubject || []).length
+      ? stats.bySubject
+          .map((row) => `<li>${escapeHtml(row.subjectName)}: ${row.sessionCount} oturum, ${row.totalMinutes} dk</li>`)
+          .join("")
+      : `<li class="empty">Bu aralıkta özet yok.</li>`;
   } catch (e) {
     $("error").textContent = e.message;
     if (String(e.message).includes("Unauthorized") || e.message === "Unauthorized") {
@@ -291,6 +307,7 @@ $("changePassword").addEventListener("click", async () => {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword })
     });
+    $("notice").textContent = "Şifre güncellendi.";
   } catch (e) {
     $("error").textContent = e.message;
   }
@@ -324,7 +341,10 @@ $("exportCsv").addEventListener("click", async () => {
   $("error").textContent = "";
   try {
     const qs = new URLSearchParams();
-    applyFilters(qs);
+    if (!applyFilters(qs)) {
+      $("error").textContent = "Başlangıç bitişten sonra olamaz.";
+      return;
+    }
     const suffix = qs.toString() ? `?${qs}` : "";
     const res = await fetch(`/api/sessions/export${suffix}`, {
       headers: { Authorization: `Bearer ${token()}` }
@@ -359,8 +379,18 @@ $("app").addEventListener("click", async (event) => {
       const minutes = window.prompt("Dakika", target.dataset.duration ?? "25");
       if (minutes === null) return;
       const durationMinutes = Number(minutes);
-      if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
-        $("error").textContent = "Dakika 1 veya daha büyük olmalı.";
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440) {
+        $("error").textContent = "Dakika 1 ile 1440 arasında olmalı.";
+        return;
+      }
+      const started = window.prompt(
+        "Başlangıç (YYYY-MM-DDTHH:MM)",
+        toLocalInputValue(new Date(target.dataset.started))
+      );
+      if (started === null) return;
+      const startedAt = new Date(started);
+      if (Number.isNaN(startedAt.getTime())) {
+        $("error").textContent = "Geçerli bir tarih-saat yaz.";
         return;
       }
       const notes = window.prompt("Not", target.dataset.notes ?? "");
@@ -369,7 +399,7 @@ $("app").addEventListener("click", async (event) => {
         method: "PUT",
         body: JSON.stringify({
           subjectId: Number(target.dataset.subjectId),
-          startedAt: target.dataset.started,
+          startedAt: startedAt.toISOString(),
           durationMinutes,
           notes: notes.trim() || null,
           tagIds: []
