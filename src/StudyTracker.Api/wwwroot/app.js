@@ -101,6 +101,18 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function toDateInput(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function applyDateRange(from, to) {
+  $("fromDate").value = from;
+  $("toDate").value = to;
+  sessionPage = 1;
+  refresh();
+}
+
 function applyFilters(qs) {
   const filter = $("sessionFilter").value;
   if (filter) qs.set("subjectId", filter);
@@ -252,6 +264,36 @@ $("clearDates").addEventListener("click", () => {
   $("toDate").value = "";
   sessionPage = 1;
   refresh();
+});
+$("filterToday").addEventListener("click", () => {
+  const today = toDateInput(new Date());
+  applyDateRange(today, today);
+});
+$("filterWeek").addEventListener("click", () => {
+  const now = new Date();
+  const mondayOffset = (now.getDay() + 6) % 7;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - mondayOffset);
+  applyDateRange(toDateInput(monday), toDateInput(now));
+});
+$("changePassword").addEventListener("click", async () => {
+  $("error").textContent = "";
+  const currentPassword = window.prompt("Mevcut şifre");
+  if (currentPassword === null || currentPassword === "") return;
+  const newPassword = window.prompt("Yeni şifre (en az 4 karakter)");
+  if (newPassword === null) return;
+  if (newPassword.length < 4) {
+    $("error").textContent = "Yeni şifre en az 4 karakter olmalı.";
+    return;
+  }
+  try {
+    await api("/api/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
 });
 $("renameMe").addEventListener("click", async () => {
   $("error").textContent = "";
