@@ -10,7 +10,7 @@ public sealed class CreateSessionRequest
     [Required]
     public DateTimeOffset StartedAt { get; set; }
 
-    [Range(1, int.MaxValue)]
+    [Range(1, 1440)]
     public int DurationMinutes { get; set; }
 
     [MaxLength(2000)]
