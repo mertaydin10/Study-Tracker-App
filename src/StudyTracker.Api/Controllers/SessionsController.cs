@@ -29,6 +29,9 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
         if (page < 1)
             return BadRequest(new { error = "page 1 veya daha büyük olmalı." });
 
+        if (from is not null && to is not null && from > to)
+            return BadRequest(new { error = "Başlangıç bitişten sonra olamaz." });
+
         pageSize = Math.Clamp(pageSize, 1, 50);
 
         var query = FilterSessions(from, to, subjectId, tagId);
@@ -58,6 +61,9 @@ public sealed class SessionsController(StudyTrackerDbContext db) : ControllerBas
         [FromQuery] long? tagId,
         CancellationToken cancellationToken)
     {
+        if (from is not null && to is not null && from > to)
+            return BadRequest(new { error = "Başlangıç bitişten sonra olamaz." });
+
         var query = FilterSessions(from, to, subjectId, tagId);
         var items = await Project(query)
             .OrderByDescending(s => s.StartedAt)
