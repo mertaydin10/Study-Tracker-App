@@ -101,6 +101,15 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function applyFilters(qs) {
+  const filter = $("sessionFilter").value;
+  if (filter) qs.set("subjectId", filter);
+  const from = $("fromDate").value;
+  const to = $("toDate").value;
+  if (from) qs.set("from", new Date(`${from}T00:00:00`).toISOString());
+  if (to) qs.set("to", new Date(`${to}T23:59:59`).toISOString());
+}
+
 async function refresh() {
   $("error").textContent = "";
   try {
@@ -136,12 +145,11 @@ async function refresh() {
         .join("");
     if (selectedFilter) $("sessionFilter").value = selectedFilter;
 
-    const filter = $("sessionFilter").value;
     const qs = new URLSearchParams({
       page: String(sessionPage),
       pageSize: String(sessionPageSize)
     });
-    if (filter) qs.set("subjectId", filter);
+    applyFilters(qs);
     const sessions = await api(`/api/sessions?${qs}`);
     const items = sessions.items || [];
     const total = sessions.totalCount ?? 0;
@@ -168,8 +176,12 @@ async function refresh() {
           .join("")
       : `<li class="empty">Bu filtrede oturum yok.</li>`;
 
-    const statsQs = filter ? `/api/stats/summary?subjectId=${encodeURIComponent(filter)}` : "/api/stats/summary";
-    const stats = await api(statsQs);
+    const statsQs = new URLSearchParams();
+    applyFilters(statsQs);
+    const statsPath = statsQs.toString()
+      ? `/api/stats/summary?${statsQs}`
+      : "/api/stats/summary";
+    const stats = await api(statsPath);
     $("stats").textContent =
       `${stats.sessionCount} oturum, ${stats.totalMinutes} dakika`;
     $("statsBySubject").innerHTML = (stats.bySubject || [])
@@ -227,6 +239,35 @@ $("sessionFilter").addEventListener("change", () => {
   sessionPage = 1;
   refresh();
 });
+$("fromDate").addEventListener("change", () => {
+  sessionPage = 1;
+  refresh();
+});
+$("toDate").addEventListener("change", () => {
+  sessionPage = 1;
+  refresh();
+});
+$("clearDates").addEventListener("click", () => {
+  $("fromDate").value = "";
+  $("toDate").value = "";
+  sessionPage = 1;
+  refresh();
+});
+$("renameMe").addEventListener("click", async () => {
+  $("error").textContent = "";
+  const current = $("who").textContent;
+  const name = window.prompt("Görünen ad", current);
+  if (!name || !name.trim()) return;
+  try {
+    const me = await api("/api/auth/me", {
+      method: "PUT",
+      body: JSON.stringify({ displayName: name.trim() })
+    });
+    $("who").textContent = me.displayName || me.email;
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
+});
 $("prevPage").addEventListener("click", () => {
   if (sessionPage > 1) {
     sessionPage -= 1;
@@ -241,8 +282,7 @@ $("exportCsv").addEventListener("click", async () => {
   $("error").textContent = "";
   try {
     const qs = new URLSearchParams();
-    const filter = $("sessionFilter").value;
-    if (filter) qs.set("subjectId", filter);
+    applyFilters(qs);
     const suffix = qs.toString() ? `?${qs}` : "";
     const res = await fetch(`/api/sessions/export${suffix}`, {
       headers: { Authorization: `Bearer ${token()}` }
