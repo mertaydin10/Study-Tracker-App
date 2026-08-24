@@ -1,5 +1,5 @@
 let sessionPage = 1;
-const sessionPageSize = 10;
+let sessionPageSize = 10;
 const tokenKey = "studyTrackerToken";
 
 function toLocalInputValue(date = new Date()) {
@@ -131,7 +131,23 @@ function applyFilters(qs) {
   if (from && to && from > to) return false;
   if (from) qs.set("from", new Date(`${from}T00:00:00`).toISOString());
   if (to) qs.set("to", new Date(`${to}T23:59:59`).toISOString());
+  const tagId = $("tagFilter").value;
+  if (tagId) qs.set("tagId", tagId);
   return true;
+}
+
+function selectedTagIds() {
+  return [...$("sessionTags").selectedOptions].map((o) => Number(o.value));
+}
+
+function resetSessionForm() {
+  $("editingSessionId").value = "";
+  $("sessionSubmit").textContent = "Oturum ekle";
+  $("cancelEdit").classList.add("hidden");
+  $("notes").value = "";
+  $("duration").value = "25";
+  $("startedAt").value = toLocalInputValue();
+  for (const option of $("sessionTags").options) option.selected = false;
 }
 
 async function refresh() {
@@ -151,12 +167,26 @@ async function refresh() {
           .join("")
       : `<li class="empty">Henüz konu yok.</li>`;
 
+    const tags = await api("/api/tags");
+    $("tags").innerHTML = tags.length
+      ? tags
+          .map(
+            (t) =>
+              `<li>${escapeHtml(t.name)}
+              <button type="button" class="small" data-delete-tag="${t.id}">Sil</button></li>`
+          )
+          .join("")
+      : `<li class="empty">Henüz etiket yok.</li>`;
+
     $("sessionHint").classList.toggle("hidden", subjects.length > 0);
     for (const el of $("sessionForm").querySelectorAll("input, select, button")) {
+      if (el.id === "cancelEdit") continue;
       el.disabled = subjects.length === 0;
     }
     const selectedAdd = $("subjectId").value;
     const selectedFilter = $("sessionFilter").value;
+    const selectedTagFilter = $("tagFilter").value;
+    const selectedSessionTags = selectedTagIds();
     $("subjectId").innerHTML = subjects
       .map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
       .join("");
@@ -168,6 +198,18 @@ async function refresh() {
         .map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
         .join("");
     if (selectedFilter) $("sessionFilter").value = selectedFilter;
+
+    $("tagFilter").innerHTML =
+      `<option value="">Tümü</option>` +
+      tags.map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join("");
+    if (selectedTagFilter) $("tagFilter").value = selectedTagFilter;
+
+    $("sessionTags").innerHTML = tags
+      .map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`)
+      .join("");
+    for (const option of $("sessionTags").options) {
+      option.selected = selectedSessionTags.includes(Number(option.value));
+    }
 
     const qs = new URLSearchParams({
       page: String(sessionPage),
@@ -193,11 +235,15 @@ async function refresh() {
       ? items
           .map((s) => {
             const note = s.notes ? ` — ${escapeHtml(s.notes)}` : "";
+            const tagNames = (s.tags || []).map((t) => t.name).join(", ");
+            const tagPart = tagNames ? ` [${escapeHtml(tagNames)}]` : "";
+            const tagIds = (s.tags || []).map((t) => t.id).join(",");
             return `<li>${escapeHtml(s.subjectName)} — ${s.durationMinutes} dk
-              <span class="when">${escapeHtml(formatWhen(s.startedAt))}</span>${note}
+              <span class="when">${escapeHtml(formatWhen(s.startedAt))}</span>${note}${tagPart}
               <button type="button" class="small" data-edit-session="${s.id}"
                 data-subject-id="${s.subjectId}" data-started="${escapeHtml(s.startedAt)}"
-                data-duration="${s.durationMinutes}" data-notes="${escapeHtml(s.notes ?? "")}">Düzenle</button>
+                data-duration="${s.durationMinutes}" data-notes="${escapeHtml(s.notes ?? "")}"
+                data-tag-ids="${escapeHtml(tagIds)}">Düzenle</button>
               <button type="button" class="small" data-delete-session="${s.id}">Sil</button></li>`;
           })
           .join("")
@@ -238,21 +284,37 @@ async function addSubject(event) {
   }
 }
 
+async function addTag(event) {
+  event.preventDefault();
+  try {
+    await api("/api/tags", {
+      method: "POST",
+      body: JSON.stringify({ name: $("tagName").value })
+    });
+    $("tagName").value = "";
+    await refresh();
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
+}
+
 async function addSession(event) {
   event.preventDefault();
   try {
-    await api("/api/sessions", {
-      method: "POST",
-      body: JSON.stringify({
-        subjectId: Number($("subjectId").value),
-        startedAt: new Date($("startedAt").value).toISOString(),
-        durationMinutes: Number($("duration").value),
-        notes: $("notes").value || null,
-        tagIds: []
-      })
-    });
-    $("notes").value = "";
-    $("startedAt").value = toLocalInputValue();
+    const id = $("editingSessionId").value;
+    const body = {
+      subjectId: Number($("subjectId").value),
+      startedAt: new Date($("startedAt").value).toISOString(),
+      durationMinutes: Number($("duration").value),
+      notes: $("notes").value || null,
+      tagIds: selectedTagIds()
+    };
+    if (id) {
+      await api(`/api/sessions/${id}`, { method: "PUT", body: JSON.stringify(body) });
+    } else {
+      await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
+    }
+    resetSessionForm();
     await refresh();
   } catch (e) {
     $("error").textContent = e.message;
@@ -263,8 +325,18 @@ $("loginForm").addEventListener("submit", login);
 $("registerForm").addEventListener("submit", register);
 $("logout").addEventListener("click", logout);
 $("subjectForm").addEventListener("submit", addSubject);
+$("tagForm").addEventListener("submit", addTag);
 $("sessionForm").addEventListener("submit", addSession);
 $("sessionFilter").addEventListener("change", () => {
+  sessionPage = 1;
+  refresh();
+});
+$("tagFilter").addEventListener("change", () => {
+  sessionPage = 1;
+  refresh();
+});
+$("pageSize").addEventListener("change", () => {
+  sessionPageSize = Number($("pageSize").value) || 10;
   sessionPage = 1;
   refresh();
 });
@@ -328,6 +400,9 @@ $("renameMe").addEventListener("click", async () => {
     $("error").textContent = e.message;
   }
 });
+$("cancelEdit").addEventListener("click", () => {
+  resetSessionForm();
+});
 $("prevPage").addEventListener("click", () => {
   if (sessionPage > 1) {
     sessionPage -= 1;
@@ -377,35 +452,24 @@ $("app").addEventListener("click", async (event) => {
       });
       await refresh();
     } else if (target.dataset.editSession) {
-      const minutes = window.prompt("Dakika", target.dataset.duration ?? "25");
-      if (minutes === null) return;
-      const durationMinutes = Number(minutes);
-      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440) {
-        $("error").textContent = "Dakika 1 ile 1440 arasında olmalı.";
-        return;
+      $("editingSessionId").value = target.dataset.editSession;
+      $("subjectId").value = target.dataset.subjectId ?? "";
+      $("duration").value = target.dataset.duration ?? "25";
+      $("notes").value = target.dataset.notes ?? "";
+      $("startedAt").value = toLocalInputValue(new Date(target.dataset.started));
+      const ids = (target.dataset.tagIds || "")
+        .split(",")
+        .map((x) => Number(x))
+        .filter((n) => n);
+      for (const option of $("sessionTags").options) {
+        option.selected = ids.includes(Number(option.value));
       }
-      const started = window.prompt(
-        "Başlangıç (YYYY-MM-DDTHH:MM)",
-        toLocalInputValue(new Date(target.dataset.started))
-      );
-      if (started === null) return;
-      const startedAt = new Date(started);
-      if (Number.isNaN(startedAt.getTime())) {
-        $("error").textContent = "Geçerli bir tarih-saat yaz.";
-        return;
-      }
-      const notes = window.prompt("Not", target.dataset.notes ?? "");
-      if (notes === null) return;
-      await api(`/api/sessions/${target.dataset.editSession}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          subjectId: Number(target.dataset.subjectId),
-          startedAt: startedAt.toISOString(),
-          durationMinutes,
-          notes: notes.trim() || null,
-          tagIds: []
-        })
-      });
+      $("sessionSubmit").textContent = "Kaydet";
+      $("cancelEdit").classList.remove("hidden");
+      $("sessionForm").scrollIntoView({ behavior: "smooth" });
+    } else if (target.dataset.deleteTag) {
+      if (!window.confirm("Bu etiketi silmek istiyor musun?")) return;
+      await api(`/api/tags/${target.dataset.deleteTag}`, { method: "DELETE" });
       await refresh();
     } else if (target.dataset.deleteSubject) {
       if (!window.confirm("Bu konuyu silmek istiyor musun?")) return;
