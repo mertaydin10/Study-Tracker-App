@@ -79,6 +79,21 @@ ul { padding-left: 1.2rem; }
 
 #pager .small { margin-left: 0; }
 
+#pager .inline {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+#pager .inline select {
+  width: auto;
+}
+
+#sessionTags {
+  min-height: 5rem;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
