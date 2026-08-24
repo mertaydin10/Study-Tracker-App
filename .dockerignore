@@ -1,4 +1,5 @@
-bin/
-obj/
-.git/
+**/bin/
+**/obj/
+.git
+.gitignore
 **/.DS_Store
