@@ -6,3 +6,5 @@ builder.Services.AddStudyTrackerApi(builder.Configuration);
 var app = builder.Build();
 app.UseStudyTrackerApi();
 app.Run();
+
+public partial class Program;
