@@ -4,16 +4,16 @@ namespace StudyTracker.Api.Dtos.Sessions;
 
 public sealed class UpdateSessionRequest
 {
-    [Range(1, long.MaxValue)]
+    [Range(1, long.MaxValue, ErrorMessage = "Konu seç.")]
     public long SubjectId { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Başlangıç gerekli.")]
     public DateTimeOffset StartedAt { get; set; }
 
-    [Range(1, 1440)]
+    [Range(1, 1440, ErrorMessage = "Dakika 1 ile 1440 arasında olmalı.")]
     public int DurationMinutes { get; set; }
 
-    [MaxLength(2000)]
+    [MaxLength(2000, ErrorMessage = "Not en fazla 2000 karakter olabilir.")]
     public string? Notes { get; set; }
 
     public List<long> TagIds { get; set; } = [];
