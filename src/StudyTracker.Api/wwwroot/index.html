@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Study Tracker</title>
-  <link rel="stylesheet" href="/styles.css?v=12" />
+  <link rel="stylesheet" href="/styles.css?v=13" />
 </head>
 <body>
   <h1>Study Tracker</h1>
@@ -51,9 +51,23 @@
     </section>
 
     <section>
+      <h2>Etiketler</h2>
+      <ul id="tags"></ul>
+      <form id="tagForm">
+        <label>Yeni etiket <input id="tagName" required /></label>
+        <button type="submit">Ekle</button>
+      </form>
+    </section>
+
+    <section>
       <h2>Oturumlar</h2>
       <label>Konuya göre
         <select id="sessionFilter">
+          <option value="">Tümü</option>
+        </select>
+      </label>
+      <label>Etikete göre
+        <select id="tagFilter">
           <option value="">Tümü</option>
         </select>
       </label>
@@ -69,20 +83,31 @@
         <button type="button" class="small" id="prevPage">Önceki</button>
         <span id="pageLabel">1</span>
         <button type="button" class="small" id="nextPage">Sonraki</button>
+        <label class="inline">Sayfa
+          <select id="pageSize">
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+          </select>
+        </label>
       </p>
       <form id="sessionForm">
+        <input type="hidden" id="editingSessionId" value="" />
         <label>Konu <select id="subjectId"></select></label>
         <label>Başlangıç <input id="startedAt" type="datetime-local" required /></label>
         <label>Dakika <input id="duration" type="number" min="1" max="1440" value="25" required /></label>
         <label>Not <input id="notes" /></label>
+        <label>Etiketler
+          <select id="sessionTags" multiple size="4"></select>
+        </label>
         <p id="sessionHint" class="empty hidden">Önce bir konu ekle.</p>
-        <button type="submit">Oturum ekle</button>
+        <button type="submit" id="sessionSubmit">Oturum ekle</button>
+        <button type="button" class="small hidden" id="cancelEdit">Düzenlemeyi iptal</button>
       </form>
     </section>
   </div>
 
   <p id="health" class="empty"></p>
 
-  <script src="/app.js?v=12"></script>
+  <script src="/app.js?v=13"></script>
 </body>
 </html>
