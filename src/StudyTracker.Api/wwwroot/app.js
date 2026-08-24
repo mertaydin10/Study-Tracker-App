@@ -33,8 +33,9 @@ async function api(path, options = {}) {
     }
   }
   if (!res.ok) {
-    const msg = data?.error || data?.title || res.statusText;
-    throw new Error(msg);
+    const err = new Error(data?.error || data?.title || res.statusText);
+    err.status = res.status;
+    throw err;
   }
   return data;
 }
@@ -217,7 +218,7 @@ async function refresh() {
       : `<li class="empty">Bu aralıkta özet yok.</li>`;
   } catch (e) {
     $("error").textContent = e.message;
-    if (String(e.message).includes("Unauthorized") || e.message === "Unauthorized") {
+    if (e.status === 401) {
       logout();
     }
   }
@@ -428,3 +429,13 @@ if (token()) {
   showApp(false);
   $("startedAt").value = toLocalInputValue();
 }
+
+(async function pingHealth() {
+  try {
+    const res = await fetch("/health");
+    const data = await res.json();
+    $("health").textContent = data.database === "up" ? "" : "Veritabanına bağlanılamıyor.";
+  } catch {
+    $("health").textContent = "API’ye ulaşılamıyor.";
+  }
+})();
